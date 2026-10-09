@@ -1,0 +1,33 @@
+name: Check latest PocketBase version
+
+on:
+  schedule:
+    - cron: '15 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: check
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Get the latest version of PocketBase
+        run: |
+          curl -s https://api.github.com/repos/pocketbase/pocketbase/releases | jq -r '[.[] | select(.prerelease == false)][0] | .tag_name' > version
+          echo "POCKETBASE_VERSION=$(cat version)" >> $GITHUB_ENV
+
+      - name: Commit & Push changes
+        id: commit
+        uses: iarekylew00t/verified-bot-commit@v2
+        with:
+          message: 'Version updated to: ${{ env.POCKETBASE_VERSION }}'
+          token: ${{ secrets.GH_PAT }}
+          update-local: true
+          auto-stage: true
+          files: |
+            **

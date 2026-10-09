@@ -1,0 +1,132 @@
+name: Build PocketBase
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'version'
+
+concurrency:
+  group: build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GOOS: linux
+      GOARCH: arm
+      GOARM: 6
+      CGO_ENABLED: 0
+      CC: arm-linux-gnueabi-gcc
+      BUILD_ID: ${{ github.run_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Export version to variable
+        shell: bash
+        run: |
+          if [ ! -f version ]; then
+            echo "version file not found."
+            exit 1
+          fi
+
+          echo "POCKETBASE_VERSION=$(cat version)" >> $GITHUB_ENV
+
+      - name: Checkout PocketBase
+        uses: actions/checkout@v7
+        with:
+          repository: pocketbase/pocketbase
+          path: pocketbase
+          ref: ${{ env.POCKETBASE_VERSION }}
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'pocketbase/go.mod'
+          cache-dependency-path: 'pocketbase/go.sum'
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential gcc-arm-linux-gnueabi libdigest-sha-perl
+          gem install fpm
+
+      - name: Build
+        shell: bash
+        working-directory: pocketbase/examples/base
+        run: |
+          ARTIFACT_DIR="../../built_artifacts"
+          mkdir -p $ARTIFACT_DIR
+
+          # Kompilasi Go dari examples/base/main.go agar plugin JS VM aktif
+          go build -o $ARTIFACT_DIR/pocketbase
+        env:
+          TARGET_ARCH: arm
+          TARGET_ARM: 6
+          VERSION: ${{ env.POCKETBASE_VERSION }}
+
+      - name: Calculate SHA256 checksum
+        working-directory: pocketbase/built_artifacts
+        shell: bash
+        run: |
+          shasum -a 256 -b pocketbase* > .checksum.txt
+          cat .checksum.txt
+      
+      - name: Generate artifact attestation
+        id: attest
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-checksums: pocketbase/built_artifacts/.checksum.txt
+
+      - name: Create release notes
+        working-directory: pocketbase/built_artifacts
+        shell: bash
+        run: |
+          cat << EOF > .release-notes.md
+          Verify the release artifacts are built from source by Github by using the [Github CLI] to [verify] the integrity and provenance using its associated cryptographically [signed attestations]
+
+          $(for filename in pocketbase*; do
+          cat << ATTEST_EOF
+          \`\`\`sh
+          gh attestation verify $filename -R $GITHUB_REPOSITORY
+          \`\`\`
+          ATTEST_EOF
+          done)
+
+          SHA256 Checksums:
+
+          \`\`\`
+          $(cat .checksum.txt)
+          \`\`\`
+
+          [Github CLI]: https://cli.github.com/
+          [verify]: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
+          [signed attestations]: ${{ steps.attest.outputs.attestation-url }}
+          EOF
+
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ env.POCKETBASE_VERSION }}-${{ env.BUILD_ID }}
+          draft: false
+          prerelease: false
+          tag: ${{ env.POCKETBASE_VERSION }}-${{ env.BUILD_ID }}
+          makeLatest: true
+          bodyFile: 'pocketbase/built_artifacts/.release-notes.md'
+          artifacts: 'pocketbase/built_artifacts/pocketbase*'
