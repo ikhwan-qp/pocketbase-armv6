@@ -50,10 +50,6 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-
       - uses: actions/setup-go@v7
         with:
           go-version-file: 'pocketbase/go.mod'
@@ -64,7 +60,6 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc-arm-linux-gnueabi libdigest-sha-perl
-          gem install fpm
 
       - name: Build
         shell: bash
