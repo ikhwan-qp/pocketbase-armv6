@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           sudo apt update
-          sudo apt install -y build-essential gcc-arm-linux-gnueabi libdigest-sha-perl
+          sudo apt install -y build-essential gcc-arm-linux-gnueabi libdigest-sha-perl zip
 
       - name: Build
         shell: bash
@@ -67,12 +67,20 @@ jobs:
         run: |
           ARTIFACT_DIR="../../built_artifacts"
           mkdir -p $ARTIFACT_DIR
+
           go build -ldflags="-s -w -X 'github.com/pocketbase/pocketbase.Version=${{ env.POCKETBASE_VERSION }}-armv6'" -o $ARTIFACT_DIR/pocketbase
-        
         env:
           TARGET_ARCH: arm
           TARGET_ARM: 6
           VERSION: ${{ env.POCKETBASE_VERSION }}
+
+      - name: Package to ZIP
+        working-directory: pocketbase/built_artifacts
+        shell: bash
+        run: |
+          ZIP_NAME="pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.zip"
+          zip "$ZIP_NAME" pocketbase
+          rm pocketbase
 
       - name: Calculate SHA256 checksum
         working-directory: pocketbase/built_artifacts
