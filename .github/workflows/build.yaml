@@ -67,9 +67,8 @@ jobs:
         run: |
           ARTIFACT_DIR="../../built_artifacts"
           mkdir -p $ARTIFACT_DIR
-
-          # Kompilasi Go dari examples/base/main.go agar plugin JS VM aktif
-          go build -o $ARTIFACT_DIR/pocketbase
+          go build -ldflags="-s -w -X 'github.com/pocketbase/pocketbase.Version=${{ env.POCKETBASE_VERSION }}-armv6'" -o $ARTIFACT_DIR/pocketbase
+        
         env:
           TARGET_ARCH: arm
           TARGET_ARM: 6
