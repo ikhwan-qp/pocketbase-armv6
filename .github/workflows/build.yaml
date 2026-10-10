@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Export version to variable
         shell: bash
@@ -53,13 +55,13 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: 'pocketbase/go.mod'
+          cache: true
           cache-dependency-path: 'pocketbase/go.sum'
 
       - name: Install dependencies
         shell: bash
         run: |
-          sudo apt update
-          sudo apt install -y build-essential gcc-arm-linux-gnueabi libdigest-sha-perl zip
+          sudo apt-get install -y --no-install-recommends build-essential gcc-arm-linux-gnueabi
 
       - name: Build
         shell: bash
@@ -74,12 +76,12 @@ jobs:
           TARGET_ARM: 6
           VERSION: ${{ env.POCKETBASE_VERSION }}
 
-      - name: Package to ZIP
+      - name: Package to TAR.GZ
         working-directory: pocketbase/built_artifacts
         shell: bash
         run: |
-          ZIP_NAME="pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.zip"
-          zip "$ZIP_NAME" pocketbase
+          TAR_NAME="pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.tar.gz"
+          tar --owner=0 --group=0 -czf "$TAR_NAME" pocketbase
           rm pocketbase
 
       - name: Calculate SHA256 checksum
