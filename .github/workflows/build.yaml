@@ -127,10 +127,10 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: ${{ env.POCKETBASE_VERSION }}-${{ env.BUILD_ID }}
+          name: ${{ env.POCKETBASE_VERSION }}
           draft: false
           prerelease: false
-          tag: ${{ env.POCKETBASE_VERSION }}-${{ env.BUILD_ID }}
+          tag: ${{ env.POCKETBASE_VERSION }}
           makeLatest: true
           bodyFile: 'pocketbase/built_artifacts/.release-notes.md'
           artifacts: 'pocketbase/built_artifacts/pocketbase*'
