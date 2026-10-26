@@ -8,9 +8,11 @@ Unofficial builds for Raspberry Pi 1, Zero, and Zero W.
 
 ## 📌 About This Repository
 
-This repository **ONLY PROVIDES BINARIES FOR ARMv6 DEVICES AND DOES NOT ALTER SOURCE CODE** for the PocketBase repo. 
+This repository **ONLY PROVIDES BINARIES FOR ARMv6 DEVICES AND DOES NOT ALTER SOURCE CODE** for PocketBase. 
 
-Since official PocketBase releases do not target ARMv6 (such as older Raspberry Pi models), this repository automates the compilation process to provide ready-to-use binaries. For software bugs, feature requests, or core issues regarding PocketBase, please visit the [PocketBase repository](https://github.com/pocketbase/pocketbase).
+Since official PocketBase releases do not target ARMv6 (such as older Raspberry Pi models), this repository automates the compilation process directly from the official upstream source to provide ready-to-use binaries. 
+
+> **Note on Upstream Migration:** Official PocketBase source code and releases have moved away from GitHub. Source code is now hosted at [`ganigeorgiev.com/pocketbase/pocketbase`](https://ganigeorgiev.com/pocketbase/pocketbase). For software bugs, feature requests, or core discussions regarding PocketBase, please visit [ganigeorgiev.com](https://ganigeorgiev.com/pocketbase/discussions).
 
 ---
 
@@ -18,11 +20,9 @@ Since official PocketBase releases do not target ARMv6 (such as older Raspberry 
 
 1. Go to the **[Releases](../../releases)** page and download the latest `.tar.gz` file for ARMv6, or download it via terminal:
    ```bash
-   # Example (replace <VERSION> with the actual version, e.g., v0.40.5)
+   # Example (replace <VERSION> with the actual version tag, e.g., v0.41.0)
    wget https://github.com/ikhwan-qp/pocketbase-armv6/releases/latest/download/pocketbase_<VERSION>_linux_armv6.tar.gz
    ```
-
-   
 
 2. Extract the archive:
    ```bash
@@ -38,8 +38,8 @@ Since official PocketBase releases do not target ARMv6 (such as older Raspberry 
 
 ## 🔒 Security & Verification
 
-All release binaries are built transparently using GitHub Actions. You can verify the build provenance and integrity using GitHub CLI:
+All release binaries are built transparently using GitHub Actions from upstream sources. You can verify the build provenance and integrity using GitHub CLI:
 
-   ```bash
-   gh attestation verify pocketbase_<VERSION>_linux_armv6.tar.gz -R ikhwan-qp/pocketbase-armv6
-   ```
+```bash
+gh attestation verify pocketbase_<VERSION>_linux_armv6.tar.gz -R ikhwan-qp/pocketbase-armv6
+```
