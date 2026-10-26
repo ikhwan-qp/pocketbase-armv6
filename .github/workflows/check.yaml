@@ -18,7 +18,8 @@ jobs:
 
       - name: Get the latest version of PocketBase
         run: |
-          curl -s https://api.github.com/repos/pocketbase/pocketbase/releases | jq -r '[.[] | select(.prerelease == false)][0] | .tag_name' > version
+          curl -s "https://ganigeorgiev.com/api/collections/releases/records?filter=channel.repository.name%3D%22pocketbase%22%20%26%26%20channel.name%3D%22default%22&sort=-semver&skipTotal=1&perPage=1" \
+            | jq -r '.items[0].tag' > version
           echo "POCKETBASE_VERSION=$(cat version)" >> $GITHUB_ENV
 
       - name: Commit & Push changes

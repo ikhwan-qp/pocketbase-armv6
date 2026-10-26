@@ -43,14 +43,10 @@ jobs:
 
           echo "POCKETBASE_VERSION=$(cat version)" >> $GITHUB_ENV
 
-      - name: Checkout PocketBase
-        uses: actions/checkout@v7
-        with:
-          repository: pocketbase/pocketbase
-          path: pocketbase
-          ref: ${{ env.POCKETBASE_VERSION }}
-          fetch-depth: 1
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clone PocketBase
+        shell: bash
+        run: |
+          git clone --depth 1 --branch "${{ env.POCKETBASE_VERSION }}" https://ganigeorgiev.com/git/pocketbase/pocketbase pocketbase
 
       - uses: actions/setup-go@v7
         with:
@@ -70,7 +66,7 @@ jobs:
           ARTIFACT_DIR="../../built_artifacts"
           mkdir -p $ARTIFACT_DIR
 
-          go build -ldflags="-s -w -X 'github.com/pocketbase/pocketbase.Version=${{ env.POCKETBASE_VERSION }}-armv6'" -o $ARTIFACT_DIR/pocketbase
+          go build -ldflags="-s -w -X 'ganigeorgiev.com/pocketbase/pocketbase.Version=${{ env.POCKETBASE_VERSION }}-armv6'" -o $ARTIFACT_DIR/pocketbase
         env:
           TARGET_ARCH: arm
           TARGET_ARM: 6
