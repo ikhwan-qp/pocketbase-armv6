@@ -84,7 +84,7 @@ jobs:
         working-directory: pocketbase/built_artifacts
         shell: bash
         run: |
-          shasum -a 256 -b pocketbase* > .checksum.txt
+          shasum -a 256 -b pocketbase*.tar.gz > .checksum.txt
           cat .checksum.txt
       
       - name: Generate artifact attestation
@@ -98,9 +98,9 @@ jobs:
         shell: bash
         run: |
           cat << EOF > .release-notes.md
-          Verify the release artifacts are built from source by Github by using the [Github CLI] to [verify] the integrity and provenance using its associated cryptographically [signed attestations]
+          Verify that the release artifacts were built from source by GitHub. You can use the [GitHub CLI] to [verify] their integrity and provenance using the cryptographically [signed attestations].
 
-          $(for filename in pocketbase*; do
+          $(for filename in pocketbase*.tar.gz; do
           cat << ATTEST_EOF
           \`\`\`sh
           gh attestation verify $filename -R $GITHUB_REPOSITORY
@@ -114,7 +114,7 @@ jobs:
           $(cat .checksum.txt)
           \`\`\`
 
-          [Github CLI]: https://cli.github.com/
+          [GitHub CLI]: https://cli.github.com/
           [verify]: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
           [signed attestations]: ${{ steps.attest.outputs.attestation-url }}
           EOF
