@@ -15,18 +15,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 60
     permissions:
       contents: write
       id-token: write
       attestations: write
-    env:
-      GOOS: linux
-      GOARCH: arm
-      GOARM: 6
-      CGO_ENABLED: 0
-      CC: arm-linux-gnueabi-gcc
-      BUILD_ID: ${{ github.run_number }}
+      artifact-metadata: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -34,79 +28,72 @@ jobs:
           persist-credentials: false
 
       - name: Export version to variable
+        id: get-version
         shell: bash
         run: |
           if [ ! -f version ]; then
-            echo "version file not found."
+            echo "Error: version file not found." >&2
             exit 1
           fi
-
-          echo "POCKETBASE_VERSION=$(cat version)" >> $GITHUB_ENV
+          VERSION=$(cat version)
+          echo "POCKETBASE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Clone PocketBase
         shell: bash
         run: |
           git clone --depth 1 --branch "${{ env.POCKETBASE_VERSION }}" https://ganigeorgiev.com/git/pocketbase/pocketbase pocketbase
 
-      - uses: actions/setup-go@v7
+      - name: Set up Go
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'pocketbase/go.mod'
           cache: true
           cache-dependency-path: 'pocketbase/go.sum'
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          sudo apt-get install -y --no-install-recommends build-essential gcc-arm-linux-gnueabi
-
-      - name: Build
+      - name: Build PocketBase
         shell: bash
         working-directory: pocketbase/examples/base
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: 6
+          CGO_ENABLED: 0
         run: |
           ARTIFACT_DIR="../../built_artifacts"
           mkdir -p $ARTIFACT_DIR
 
           go build -ldflags="-s -w -X 'ganigeorgiev.com/pocketbase/pocketbase.Version=${{ env.POCKETBASE_VERSION }}-armv6'" -o $ARTIFACT_DIR/pocketbase
-        env:
-          TARGET_ARCH: arm
-          TARGET_ARM: 6
-          VERSION: ${{ env.POCKETBASE_VERSION }}
 
-      - name: Package to TAR.GZ
-        working-directory: pocketbase/built_artifacts
+      - name: Package to TAR.GZ & Checksum
         shell: bash
+        working-directory: pocketbase/built_artifacts
         run: |
           TAR_NAME="pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.tar.gz"
           tar --owner=0 --group=0 -czf "$TAR_NAME" pocketbase
           rm pocketbase
-
-      - name: Calculate SHA256 checksum
-        working-directory: pocketbase/built_artifacts
-        shell: bash
-        run: |
-          shasum -a 256 -b pocketbase*.tar.gz > .checksum.txt
+          
+          shasum -a 256 -b *.tar.gz > .checksum.txt
           cat .checksum.txt
-      
+
       - name: Generate artifact attestation
         id: attest
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest@v4
         with:
-          subject-checksums: pocketbase/built_artifacts/.checksum.txt
+          subject-path: 'pocketbase/built_artifacts/pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.tar.gz'
 
       - name: Create release notes
-        working-directory: pocketbase/built_artifacts
         shell: bash
+        working-directory: pocketbase/built_artifacts
         run: |
+          ATTEST_URL="${{ steps.attest.outputs.attestation-url }}"
+          
           cat << EOF > .release-notes.md
           Verify that the release artifacts were built from source by GitHub. You can use the [GitHub CLI] to [verify] their integrity and provenance using the cryptographically [signed attestations].
 
-          $(for filename in pocketbase*.tar.gz; do
-          cat << ATTEST_EOF
           \`\`\`sh
-          gh attestation verify $filename -R $GITHUB_REPOSITORY
+          gh attestation verify pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.tar.gz -R $GITHUB_REPOSITORY
           \`\`\`
-          ATTEST_EOF
-          done)
 
           SHA256 Checksums:
 
@@ -116,7 +103,7 @@ jobs:
 
           [GitHub CLI]: https://cli.github.com/
           [verify]: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
-          [signed attestations]: ${{ steps.attest.outputs.attestation-url }}
+          [signed attestations]: ${ATTEST_URL}
           EOF
 
       - name: Release
@@ -124,9 +111,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: ${{ env.POCKETBASE_VERSION }}
-          draft: false
-          prerelease: false
           tag: ${{ env.POCKETBASE_VERSION }}
           makeLatest: true
           bodyFile: 'pocketbase/built_artifacts/.release-notes.md'
-          artifacts: 'pocketbase/built_artifacts/pocketbase*'
+          artifacts: 'pocketbase/built_artifacts/pocketbase*.tar.gz'
