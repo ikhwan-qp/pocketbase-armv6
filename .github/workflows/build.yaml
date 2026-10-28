@@ -67,12 +67,20 @@ jobs:
 
       - name: Package to TAR.GZ & Checksum
         shell: bash
-        working-directory: pocketbase/built_artifacts
         run: |
+          BUILD_DIR="pocketbase/examples/base"
+          ARTIFACT_DIR="pocketbase/built_artifacts"
+
+          cp "$BUILD_DIR/pocketbase" "$ARTIFACT_DIR/"
+          cp "pocketbase/LICENSE.md" "$ARTIFACT_DIR/"
+          cp "pocketbase/CHANGELOG.md" "$ARTIFACT_DIR/"
+
+          cd "$ARTIFACT_DIR"
           TAR_NAME="pocketbase_${{ env.POCKETBASE_VERSION }}_linux_armv6.tar.gz"
-          tar --owner=0 --group=0 -czf "$TAR_NAME" pocketbase
-          rm pocketbase
           
+          tar --owner=0 --group=0 -czf "$TAR_NAME" pocketbase LICENSE.md CHANGELOG.md
+          
+          rm pocketbase LICENSE.md CHANGELOG.md
           shasum -a 256 -b *.tar.gz > .checksum.txt
           cat .checksum.txt
 
