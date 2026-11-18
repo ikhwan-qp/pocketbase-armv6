@@ -96,6 +96,12 @@ jobs:
           ATTEST_URL="${{ steps.attest.outputs.attestation-url }}"
           
           cat << EOF > .release-notes.md
+          Official full release notes and changelog:
+          👉 [PocketBase Official Releases (${PB_VERSION})]
+          (https://ganigeorgiev.com/pocketbase/pocketbase/releases?expr=tag%3D%22${PB_VERSION}%22)
+        
+          ---
+          
           Verify that the release artifacts were built from source by GitHub. You can use the [GitHub CLI] to [verify] their integrity and provenance using the cryptographically [signed attestations].
 
           \`\`\`sh
